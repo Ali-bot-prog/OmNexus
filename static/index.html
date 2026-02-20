@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emlak Değerleme v5.2</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>💎 Pusula Gayrimenkul</h1>
+        <p class="subtitle">Yapay Zeka Destekli Gayrimenkul Değerleme Sistemi</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-target="add-view">Yeni Kayıt</button>
+        <button class="tab-btn" data-target="list-view">Kayıtlar</button>
+        <button class="tab-btn" data-target="estimate-view">Değerleme Yap</button>
+    </div>
+
+    <!-- VIEW 1: ADD EMSAL -->
+    <div id="add-view" class="view-section active">
+        <div class="card">
+            <h2 style="margin-bottom:1.5rem">Yeni Emsal Ekle</h2>
+            <form id="form-add" onsubmit="return false;">
+                <div class="form-grid">
+                    <div style="grid-column: 1 / -1; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin-bottom: 0.5rem">
+                        <strong style="color:var(--primary)">📍 Temel Bilgiler</strong>
+                    </div>
+                    <div class="form-group">
+                        <label>Mülk Tipi</label>
+                        <select name="tur">
+                            <option value="konut">Konut</option>
+                            <option value="arsa">Arsa</option>
+                            <option value="ticari">Ticari</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>İl</label>
+                        <input type="text" name="il" placeholder="Örn: İstanbul">
+                    </div>
+                    <div class="form-group">
+                        <label>İlçe</label>
+                        <input type="text" name="ilce" placeholder="Örn: Kadıköy">
+                    </div>
+                    <div class="form-group">
+                        <label>Mahalle</label>
+                        <input type="text" name="mahalle" placeholder="Örn: Caferağa">
+                    </div>
+
+                    <div style="grid-column: 1 / -1; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin: 1rem 0 0.5rem 0">
+                        <strong style="color:var(--primary)">📐 Alan & Bina Bilgisi</strong>
+                    </div>
+                    <!-- Konut / Ticari -->
+                    <div class="form-group type-konut type-ticari">
+                        <label>Brüt Alan (m²)</label>
+                        <input type="number" name="brut_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Net Alan (m²)</label>
+                        <input type="number" name="net_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Bina Yaşı</label>
+                        <input type="number" name="bina_yasi">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Hangi Katta?</label>
+                        <input type="number" name="bulundugu_kat" placeholder="Örn: 3">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Bina Kat Sayısı</label>
+                        <input type="number" name="bina_kat_sayisi" placeholder="Toplam Kat">
+                    </div>
+
+                    <!-- Arsa -->
+                    <div class="form-group type-arsa" style="display:none">
+                        <label>Arsa Alanı (m²)</label>
+                        <input type="number" name="arsa_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-arsa" style="display:none">
+                        <label>Emsal (KAKS)</label>
+                        <input type="number" step="0.01" name="kaks" placeholder="Örn: 1.5">
+                    </div>
+
+                    <div style="grid-column: 1 / -1; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin: 1rem 0 0.5rem 0">
+                        <strong style="color:var(--primary)">📋 Detaylı Özellikler & Fiyat</strong>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Kat Konumu</label>
+                        <select name="kat">
+                            <option value="">Seçiniz</option>
+                            <option value="zemin">Zemin / Giriş</option>
+                            <option value="bodrum">Bodrum / Kot</option>
+                            <option value="ara">Ara Kat</option>
+                            <option value="en_ust">En Üst / Çatı</option>
+                            <option value="dublex">Dubleks</option>
+                            <option value="villa">Müstakil / Villa</option>
+                        </select>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Cephe</label>
+                        <select name="cephe">
+                            <option value="">Seçiniz</option>
+                            <option value="kuzey">Kuzey</option>
+                            <option value="guney">Güney</option>
+                            <option value="dogu">Doğu</option>
+                            <option value="bati">Batı</option>
+                        </select>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Isıtma</label>
+                        <select name="isitma">
+                            <option value="">Seçiniz</option>
+                            <option value="kombi">Kombi</option>
+                            <option value="merkezi">Merkezi</option>
+                            <option value="soba">Soba</option>
+                            <option value="yok">Yok</option>
+                        </select>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Otopark</label>
+                        <select name="otopark">
+                            <option value="">Seçiniz</option>
+                            <option value="1">Var</option>
+                            <option value="0">Yok</option>
+                        </select>
+                    </div>
+                    <div class="form-group type-arsa" style="display:none">
+                        <label>İmar Durumu</label>
+                        <select name="imar">
+                            <option value="">Seçiniz</option>
+                            <option value="konut">Konut İmarlı</option>
+                            <option value="ticari">Ticari İmarlı</option>
+                            <option value="sanayi">Sanayi İmarlı</option>
+                            <option value="tarla">Tarla / Bağ-Bahçe</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tapu Tipi</label>
+                        <select name="tapu">
+                            <option value="">Seçiniz</option>
+                            <option value="kat_mulkiyeti">Kat Mülkiyeti</option>
+                            <option value="kat_irtifaki">Kat İrtifakı</option>
+                            <option value="hisseli">Hisseli</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fiyat (TL)</label>
+                        <input type="number" name="fiyat" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kira (TL - Ops)</label>
+                        <input type="number" name="kira">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1">
+                        <label>Kaynak / Link</label>
+                        <input type="text" name="kaynak" placeholder="sahibinden.com/...">
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button id="save-emsal-btn" type="button" class="btn">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- VIEW 2: LIST -->
+    <div id="list-view" class="view-section">
+        <div class="card">
+            <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end; margin-bottom:1.5rem; background:#f8fafc; padding:1rem; border-radius:8px; border:1px solid #eee">
+                <div class="form-group" style="margin:0">
+                    <label style="font-size:0.8rem">Tür</label>
+                    <select id="filter-tur" style="padding:0.5rem">
+                        <option value="">Tümü</option>
+                        <option value="konut">Konut</option>
+                        <option value="arsa">Arsa</option>
+                        <option value="ticari">Ticari</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label style="font-size:0.8rem">İl</label>
+                    <input type="text" id="filter-il" placeholder="İl Ara..." style="padding:0.5rem">
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label style="font-size:0.8rem">İlçe</label>
+                    <input type="text" id="filter-ilce" placeholder="İlçe Ara..." style="padding:0.5rem">
+                </div>
+                <div class="form-group" style="margin:0">
+                    <label style="font-size:0.8rem">Mahalle</label>
+                    <input type="text" id="filter-mahalle" placeholder="Mahalle Ara..." style="padding:0.5rem">
+                </div>
+                <button class="btn" onclick="loadEmsals()" style="padding:0.5rem 1rem; height:40px">Ara</button>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+                <h2>Kayıtlar</h2>
+                <div style="display:flex; gap:0.5rem">
+                    <a href="/template/emsal.xlsx" class="btn" style="background:var(--text-muted); text-decoration:none; font-size:0.9rem">Boş Şablon İndir</a>
+                    <button class="btn" onclick="document.getElementById('import-file').click()" style="background:var(--success); font-size:0.9rem">Excel Yükle</button>
+                    <button class="btn" onclick="downloadExcel()" style="background:var(--primary); font-size:0.9rem">Excel İndir (Rapor)</button>
+                    <input type="file" id="import-file" style="display:none" onchange="uploadExcel(this)">
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table id="emsal-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tür</th>
+                            <th>Konum</th>
+                            <th>Mahalle</th>
+                            <th>Brüt / Net</th>
+                            <th>Yaş</th>
+                            <th>Kat</th>
+                            <th>Isıtma / Cephe</th>
+                            <th>Fiyat</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- JS renders rows here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 3: ESTIMATE -->
+    <div id="estimate-view" class="view-section">
+        <div class="card">
+            <h2 style="margin-bottom:1.5rem">Fiyat Tahmini</h2>
+            <form id="form-estimate" onsubmit="return false;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Mülk Tipi</label>
+                        <select name="tur">
+                            <option value="konut">Konut</option>
+                            <option value="arsa">Arsa</option>
+                            <option value="ticari">Ticari</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>İl</label>
+                        <input type="text" name="il">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>İlçe</label>
+                        <input type="text" name="ilce">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mahalle</label>
+                        <input type="text" name="mahalle">
+                    </div>
+
+                    <!-- TİP BAZLI ALANLAR -->
+                    <!-- Konut / Ticari -->
+                    <div class="form-group type-konut type-ticari">
+                        <label>Brüt Alan (m²)</label>
+                        <input type="number" name="brut_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Net Alan (m²)</label>
+                        <input type="number" name="net_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Bina Yaşı</label>
+                        <input type="number" name="bina_yasi">
+                    </div>
+
+                    <!-- Arsa -->
+                    <div class="form-group type-arsa" style="display:none">
+                        <label>Arsa Alanı (m²)</label>
+                        <input type="number" name="arsa_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-arsa" style="display:none">
+                        <label>Emsal (KAKS)</label>
+                        <input type="number" step="0.01" name="kaks" placeholder="Örn: 1.5">
+                    </div>
+
+                    <!-- EK ÖZELLİKLER (Tahmin) -->
+                    <div style="grid-column: 1 / -1; margin-top:1rem; border-top:1px solid #eee; padding-top:1rem">
+                        <strong style="display:block; margin-bottom:1rem; color:var(--text-muted)">Özellik Kriterleri</strong>
+                        <div class="form-grid" style="margin-bottom:0">
+                            
+                            <!-- Konut/Ticari -->
+                            <div class="form-group type-konut type-ticari">
+                                <label>Kat</label>
+                                <select name="kat">
+                                    <option value="">Farketmez</option>
+                                    <option value="zemin">Zemin / Giriş</option>
+                                    <option value="bodrum">Bodrum / Kot</option>
+                                    <option value="ara">Ara Kat</option>
+                                    <option value="en_ust">En Üst / Çatı</option>
+                                    <option value="dublex">Dubleks</option>
+                                    <option value="villa">Müstakil / Villa</option>
+                                </select>
+                            </div>
+                            <div class="form-group type-konut type-ticari">
+                                <label>Cephe</label>
+                                <select name="cephe">
+                                    <option value="">Farketmez</option>
+                                    <option value="kuzey">Kuzey</option>
+                                    <option value="guney">Güney</option>
+                                    <option value="dogu">Doğu</option>
+                                    <option value="bati">Batı</option>
+                                </select>
+                            </div>
+                            <div class="form-group type-konut type-ticari">
+                                <label>Isıtma</label>
+                                <select name="isitma">
+                                    <option value="">Farketmez</option>
+                                    <option value="kombi">Kombi</option>
+                                    <option value="merkezi">Merkezi</option>
+                                    <option value="soba">Soba</option>
+                                    <option value="yok">Yok</option>
+                                </select>
+                            </div>
+                            <div class="form-group type-konut type-ticari">
+                                <label>Otopark</label>
+                                <select name="otopark">
+                                    <option value="">Farketmez</option>
+                                    <option value="1">Var</option>
+                                    <option value="0">Yok</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Arsa -->
+                            <div class="form-group type-arsa" style="display:none">
+                                <label>İmar Durumu</label>
+                                <select name="imar">
+                                    <option value="">Farketmez</option>
+                                    <option value="konut">Konut İmarlı</option>
+                                    <option value="ticari">Ticari İmarlı</option>
+                                    <option value="sanayi">Sanayi İmarlı</option>
+                                    <option value="tarla">Tarla / Bağ-Bahçe</option>
+                                </select>
+                            </div>
+
+                            <!-- Ortak -->
+                            <div class="form-group">
+                                <label>Tapu</label>
+                                <select name="tapu">
+                                    <option value="">Farketmez</option>
+                                    <option value="kat_mulkiyeti">Kat Mülkiyeti</option>
+                                    <option value="kat_irtifaki">Kat İrtifakı</option>
+                                    <option value="hisseli">Hisseli</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <details style="grid-column: 1 / -1; background: #f1f5f9; padding: 1rem; border-radius: 8px;">
+                        <summary style="cursor:pointer; font-weight:600; color:var(--primary)">Gelişmiş Ayarlar (Enflasyon / Trend)</summary>
+                        <div class="form-grid" style="margin-top:1rem; margin-bottom:0;">
+                            <div class="form-group">
+                                <label>Aylık Piyasa Artışı (Trend %)</label>
+                                <input type="number" name="aylik_artis" step="0.01" value="0.03" placeholder="Örn: 0.03 (%3)">
+                                <small style="color:var(--text-muted)">Eski emsalleri bugüne taşımak için kullanılır.</small>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <div style="margin-top:1.5rem">
+                    <button id="estimate-btn" type="button" class="btn" style="width:100%">Hesapla</button>
+                </div>
+            </form>
+
+            <div id="estimate-result" class="result-box" style="display:none">
+                <!-- Result renders here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL (MOVED HERE) -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content card">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h2 style="margin-bottom:1.5rem">Kaydı Düzenle</h2>
+            <form id="form-edit" onsubmit="return false;">
+                <input type="hidden" name="id">
+                
+                <div class="form-grid">
+                    <div style="grid-column: 1 / -1; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin-bottom: 0.5rem">
+                        <strong style="color:var(--primary)">📍 Temel Bilgiler</strong>
+                    </div>
+                    <div class="form-group">
+                        <label>Mülk Tipi</label>
+                        <select name="tur" id="edit-tur-select">
+                            <option value="konut">Konut</option>
+                            <option value="arsa">Arsa</option>
+                            <option value="ticari">Ticari</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>İl</label>
+                        <input type="text" name="il">
+                    </div>
+                    <div class="form-group">
+                        <label>İlçe</label>
+                        <input type="text" name="ilce">
+                    </div>
+                    <div class="form-group">
+                        <label>Mahalle</label>
+                        <input type="text" name="mahalle">
+                    </div>
+
+                    <div style="grid-column: 1 / -1; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin: 1rem 0 0.5rem 0">
+                        <strong style="color:var(--primary)">📐 Alan & Bina Bilgisi</strong>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Brüt Alan (m²)</label>
+                        <input type="number" name="brut_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Net Alan (m²)</label>
+                        <input type="number" name="net_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Bina Yaşı</label>
+                        <input type="number" name="bina_yasi">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Hangi Katta?</label>
+                        <input type="number" name="bulundugu_kat" placeholder="Örn: 3">
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Bina Kat Sayısı</label>
+                        <input type="number" name="bina_kat_sayisi" placeholder="Toplam Kat">
+                    </div>
+
+                    <div class="form-group type-arsa" style="display:none">
+                        <label>Arsa Alanı (m²)</label>
+                        <input type="number" name="arsa_m2" step="0.01">
+                    </div>
+                    <div class="form-group type-arsa" style="display:none">
+                        <label>Emsal (KAKS)</label>
+                        <input type="number" step="0.01" name="kaks" placeholder="Örn: 1.5">
+                    </div>
+
+                    <div style="grid-column: 1 / -1; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin: 1rem 0 0.5rem 0">
+                        <strong style="color:var(--primary)">📋 Detaylı Özellikler & Fiyat</strong>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Kat Konumu</label>
+                        <select name="kat">
+                            <option value="">Seçiniz</option>
+                            <option value="zemin">Zemin / Giriş</option>
+                            <option value="bodrum">Bodrum / Kot</option>
+                            <option value="ara">Ara Kat</option>
+                            <option value="en_ust">En Üst / Çatı</option>
+                            <option value="dublex">Dubleks</option>
+                            <option value="villa">Müstakil / Villa</option>
+                        </select>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Cephe</label>
+                        <select name="cephe">
+                            <option value="">Seçiniz</option>
+                            <option value="kuzey">Kuzey</option>
+                            <option value="guney">Güney</option>
+                            <option value="dogu">Doğu</option>
+                            <option value="bati">Batı</option>
+                        </select>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Isıtma</label>
+                        <select name="isitma">
+                            <option value="">Seçiniz</option>
+                            <option value="kombi">Kombi</option>
+                            <option value="merkezi">Merkezi</option>
+                            <option value="soba">Soba</option>
+                            <option value="yok">Yok</option>
+                        </select>
+                    </div>
+                    <div class="form-group type-konut type-ticari">
+                        <label>Otopark</label>
+                        <select name="otopark">
+                            <option value="">Seçiniz</option>
+                            <option value="1">Var</option>
+                            <option value="0">Yok</option>
+                        </select>
+                    </div>
+                    <div class="form-group type-arsa" style="display:none">
+                        <label>İmar Durumu</label>
+                        <select name="imar">
+                            <option value="">Seçiniz</option>
+                            <option value="konut">Konut İmarlı</option>
+                            <option value="ticari">Ticari İmarlı</option>
+                            <option value="sanayi">Sanayi İmarlı</option>
+                            <option value="tarla">Tarla / Bağ-Bahçe</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tapu Tipi</label>
+                        <select name="tapu">
+                            <option value="">Seçiniz</option>
+                            <option value="kat_mulkiyeti">Kat Mülkiyeti</option>
+                            <option value="kat_irtifaki">Kat İrtifakı</option>
+                            <option value="hisseli">Hisseli</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fiyat (TL)</label>
+                        <input type="number" name="fiyat" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kira (TL - Ops)</label>
+                        <input type="number" name="kira" step="0.01">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1">
+                        <label>Kaynak / Link</label>
+                        <input type="text" name="kaynak" placeholder="sahibinden.com/...">
+                    </div>
+                <div style="text-align: right; margin-top:1.5rem; display:flex; justify-content:flex-end; gap:1rem">
+                    <button type="button" class="btn" style="background:var(--text-muted)" onclick="closeEditModal()">İptal</button>
+                    <button type="button" class="btn" onclick="saveEdit()">Güncelle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script src="/static/js/app.js?v=final_fix_3"></script>

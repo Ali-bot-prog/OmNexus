@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.venv
+env/
+# Database
+*.sqlite
+*.db
+
+# Node
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+build.log
+build2.log
+build3_utf8.log
+build4_utf8.log
+build5_utf8.log
+build6_utf8.log
+build6.log
+error_trace.txt

@@ -1,0 +1,91 @@
+﻿
+> emlak-dashboard@0.1.0 build
+> next build
+
+   Ôû▓ Next.js 14.1.0
+
+   Creating an optimized production build ...
+> [PWA] Compile server
+> [PWA] Compile server
+> [PWA] Compile client (static)
+> [PWA] Auto register service worker with: C:\Users\alifa\Desktop\Projeler\omnexus.com\dashboard\node_modules\next-pwa\register.js
+> [PWA] Service worker: C:\Users\alifa\Desktop\Projeler\omnexus.com\dashboard\public\sw.js
+> [PWA]   url: /sw.js
+> [PWA]   scope: /
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+node.exe : Failed to
+ compile.
+At line:1 char:1
++ & "C:\Program File
+s\nodejs/node.exe" "
+C:\Program Files\nod
+ejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo  
+            : NotS  
+  pecified: (Fail   
+ ed to compile.:    
+String) [], Rem    o
+teException
+    + FullyQualifie 
+   dErrorId : Nati  
+  veCommandError
+ 
+
+./src/components/pro
+viders/ThemeProvider
+.tsx:4:41
+Type error: Cannot f
+ind module 'next-the
+mes/dist/types' or i
+ts corresponding typ
+e declarations.
+
+[0m [90m 2 |[39m
+[0m
+[0m [90m 3 |[39m 
+[36mimport[39m { 
+[33mThemeProvider[3
+9m [36mas[39m [33
+mNextThemesProvider
+[39m } [36mfrom[39
+m [32m"next-themes"
+[39m[33m;[39m[0m
+[0m[31m[1m>[22m
+[39m[90m 4 |[39m 
+[36mimport[39m { ty
+pe [33mThemeProvide
+rProps[39m } [36mf
+rom[39m [32m"next-
+themes/dist/types"[
+39m[33m;[39m[0m
+[0m [90m   |[39m 
+                    
+                    
+[31m[1m^[22m[39m
+[0m
+[0m [90m 5 |[39m
+[0m
+[0m [90m 6 |[39m 
+[36mexport[39m [3
+6mfunction[39m [33
+mThemeProvider[39m(
+{ children[33m,[39
+m [33m...[39mprops
+ }[33m:[39m [33mT
+hemeProviderProps[3
+9m) {[0m
+[0m [90m 7 |[39m 
+  [36mreturn[39m 
+[33m<[39m[33mNextT
+hemesProvider[39m {
+[33m...[39mprops}
+[33m>[39m{children}
+[33m<[39m[33m/[3
+9m[33mNextThemesPro
+vider[39m[33m>[39
+m[33m;[39m[0m
