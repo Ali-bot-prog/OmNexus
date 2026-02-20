@@ -1252,6 +1252,8 @@ def list_emsal(
     ilce: Optional[str] = Query(default=None),
     mahalle: Optional[str] = Query(default=None),
     q: Optional[str] = Query(default=None, description="Genel arama (il, ilce, mahalle)"),
+    durum: Optional[str] = Query(default=None),
+    listing_type: Optional[str] = Query(default=None),
     sort: str = Query(default="desc", regex="^(asc|desc)$"),
     limit: int = Query(default=50, ge=1, le=5000),
     offset: int = Query(default=0, ge=0),
@@ -1266,6 +1268,12 @@ def list_emsal(
     if tur:
         sql += " AND tur=?"
         params.append(tur)
+    if durum:
+        sql += " AND durum=?"
+        params.append(durum)
+    if listing_type:
+        sql += " AND listing_type=?"
+        params.append(listing_type)
     if il:
         sql += " AND il=?"
         params.append(il)

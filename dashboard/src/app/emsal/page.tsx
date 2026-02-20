@@ -41,6 +41,12 @@ export default function EmsalPage() {
   const [editingItem, setEditingItem] = useState<EmsalItem | null>(null);
   const [initialData, setInitialData] = useState<any>(null);
 
+  const [filters, setFilters] = useState<{ tur: string; durum: string; listingType: string; }>({
+    tur: "",
+    durum: "",
+    listingType: ""
+  });
+
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -63,6 +69,15 @@ export default function EmsalPage() {
       if (searchTerm) {
         params.append("q", searchTerm);
       }
+      if (filters.tur) {
+        params.append("tur", filters.tur);
+      }
+      if (filters.durum) {
+        params.append("durum", filters.durum);
+      }
+      if (filters.listingType) {
+        params.append("listing_type", filters.listingType);
+      }
 
       const res = await fetch(`http://localhost:5555/emsal?${params.toString()}`, {
          headers: getAuthHeaders() as any
@@ -82,10 +97,10 @@ export default function EmsalPage() {
     }
   };
 
-  // Re-fetch when page changes
+  // Re-fetch when page changes or filters change
   useEffect(() => {
     fetchData();
-  }, [page]);
+  }, [page, filters]);
 
   // Handle Search (reset page to 0)
   const handleSearch = (e: React.FormEvent) => {
@@ -208,7 +223,8 @@ export default function EmsalPage() {
 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
          {/* Toolbar */}
-         <div className="p-4 border-b border-slate-100 flex gap-4">
+        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 bg-slate-50/50">
+          {/* Search */}
             <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                <input 
@@ -216,9 +232,59 @@ export default function EmsalPage() {
                  placeholder="İlçe veya mahalle ara... (Enter)" 
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
-                 className="pl-10 pr-4 py-2 w-full bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              className="pl-10 pr-4 py-2 w-full bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
                />
             </form>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={filters.tur}
+              onChange={(e) => { setFilters({ ...filters, tur: e.target.value }); setPage(0); }}
+              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
+            >
+              <option value="">Tüm Türler</option>
+              <option value="konut">Konut</option>
+              <option value="ticari">Ticari</option>
+              <option value="arsa">Arsa</option>
+            </select>
+
+            <select
+              value={filters.listingType}
+              onChange={(e) => { setFilters({ ...filters, listingType: e.target.value }); setPage(0); }}
+              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
+            >
+              <option value="">Tüm İlan Tipleri</option>
+              <option value="satilik">Satılık</option>
+              <option value="kiralik">Kiralık</option>
+            </select>
+
+            <select
+              value={filters.durum}
+              onChange={(e) => { setFilters({ ...filters, durum: e.target.value }); setPage(0); }}
+              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
+            >
+              <option value="">Tüm Durumlar</option>
+              <option value="aktif">Aktif</option>
+              <option value="satildi">Satıldı</option>
+              <option value="kiralandi">Kiralandı</option>
+              <option value="pasif">Pasif</option>
+            </select>
+
+            {/* Clear Filters Button (Shows only if a filter is active) */}
+            {(filters.tur || filters.durum || filters.listingType || searchTerm) && (
+              <button
+                onClick={() => {
+                  setFilters({ tur: "", durum: "", listingType: "" });
+                  setSearchTerm("");
+                  setPage(0);
+                }}
+                className="px-3 py-2 text-sm text-red-600 font-medium hover:bg-red-50 rounded-xl transition-colors"
+              >
+                Temizle
+              </button>
+            )}
+          </div>
          </div>
 
          {/* Grid */}
