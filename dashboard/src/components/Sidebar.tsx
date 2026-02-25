@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, MapPin, Filter, Calculator } from "lucide-react";
+import { TrendingUp, MapPin, Filter, Calculator, Database, MessageSquare, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
@@ -72,6 +72,30 @@ export default function Sidebar() {
         >
           <MapPin className="w-5 h-5" />
           {t.common.mapAnalysis}
+        </Link>
+
+        <Link
+          href="/veri-madenciligi"
+          className={`flex items-center gap-3 p-3 rounded-xl font-semibold transition-all ${isActive("/veri-madenciligi")
+            ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 shadow-sm shadow-indigo-100 dark:shadow-none"
+            : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+        >
+          <Search className="w-5 h-5" />
+          {t.common.dataMining}
+          <span className="ml-auto text-[10px] bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">AJAN</span>
+        </Link>
+
+        <Link
+          href="/strateji-forumu"
+          className={`flex items-center gap-3 p-3 rounded-xl font-semibold transition-all ${isActive("/strateji-forumu")
+            ? "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 shadow-sm shadow-rose-100 dark:shadow-none"
+            : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+        >
+          <MessageSquare className="w-5 h-5" />
+          {t.common.strategyForum}
+          <span className="ml-auto text-[10px] bg-rose-100 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">AI</span>
         </Link>
       </div>
 

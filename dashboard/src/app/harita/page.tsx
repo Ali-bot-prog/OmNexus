@@ -33,7 +33,7 @@ export default function MapAnalysisPage() {
             const token = localStorage.getItem("token");
             if (!token) { router.push("/login"); return; }
             
-            const res = await fetch("http://localhost:5555/emsal?limit=1000", {
+            const res = await fetch(`http://localhost:5555/emsal?limit=1000&ts=${new Date().getTime()}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             
@@ -160,7 +160,7 @@ export default function MapAnalysisPage() {
         {/* Loading Overlay */}
         {loading && (
             <div className="absolute inset-0 z-[500] bg-white/50 backdrop-blur-sm flex items-center justify-center pointer-events-none">
-                <div className="text-slate-800 font-bold">Veriler Yükleniyor...</div>
+                  <div className="text-slate-800 dark:text-white font-bold">Veriler Yükleniyor...</div>
             </div>
         )}
     </div>

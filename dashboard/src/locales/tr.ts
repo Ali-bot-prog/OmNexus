@@ -5,6 +5,8 @@ export const tr = {
     new: "YENİ",
     emsalManagement: "Emsal Yönetimi",
     mapAnalysis: "Harita Analizi",
+    dataMining: "FSBO Avı",
+    strategyForum: "Strateji Forumu",
     deviceStatus: "Cihaz Durumu",
     aiActive: "AI Aktif",
     overview: "Genel Bakış",

@@ -68,8 +68,8 @@ export default function ValuationPage() {
       <div className="lg:col-span-4">
         <div className="sticky top-8">
            <div className="mb-6">
-             <h1 className="text-2xl font-bold text-slate-900">Akıllı Değerleme</h1>
-             <p className="text-slate-500 text-sm">Mülk detaylarını gir, yapay zeka senin için hesaplasın.</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Akıllı Değerleme</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Mülk detaylarını gir, yapay zeka senin için hesaplasın.</p>
            </div>
            
            <ValuationForm onEstimate={handleEstimate} loading={loading} />

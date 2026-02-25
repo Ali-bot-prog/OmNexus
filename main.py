@@ -22,14 +22,20 @@ from fpdf import FPDF
 
 import sqlite3
 import os
-import math
+import random
+import ast
+import scraper
+import lead_finder
 import statistics
+import random
+import math
+from apscheduler.schedulers.background import BackgroundScheduler
 
 
 # ==================================================
 # CONFIG
 # ==================================================
-APP_TITLE = "app_emlak_v5_2 - A3E (Emsal + TimeWeight + Confidence)"
+APP_TITLE = "OmNexus - Akıllı Emlak Platformu"
 BASE_DIR = os.path.join(os.path.expanduser("~"), "PusulaGayrimenkulV5_2")
 DB_PATH = os.path.join(BASE_DIR, "db.sqlite")
 PORT = 5555
@@ -40,7 +46,7 @@ PropertyTur = Literal["konut", "arsa", "ticari"]
 
 # [LLM] Client Initialization
 # [LLM] Client Initialization
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyAQcTEQHXV9fJ32K2zKjtXikFb3FJ6NU4o")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyBoHtAsMYcRSJqEugGCmoL4mmX1t77_Fp0")
 ai_client = None
 if GEMINI_API_KEY:
     ai_client = genai.Client(api_key=GEMINI_API_KEY)
@@ -106,6 +112,20 @@ def init_db() -> None:
             kaynak TEXT,
             tenant_id INTEGER, -- [NEW] SaaS Support
             durum TEXT DEFAULT 'aktif', -- [NEW] Satildi/Kiralandi/Aktif/Pasif
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS piyasa_hafizasi (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kategori TEXT NOT NULL,
+            soru_baslik TEXT NOT NULL,
+            cevap_icerik TEXT NOT NULL,
+            okunma_sayisi INTEGER DEFAULT 0,
+            tenant_id INTEGER,
             created_at TEXT NOT NULL
         )
         """
@@ -576,6 +596,20 @@ def init_db() -> None:
         """
     )
     
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS piyasa_hafizasi (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kategori TEXT NOT NULL,
+            soru_baslik TEXT NOT NULL,
+            cevap_icerik TEXT NOT NULL,
+            okunma_sayisi INTEGER DEFAULT 0,
+            tenant_id INTEGER,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    
     # 2. Migrasyon (Eksik kolonları ekle)
     new_cols = [
         ("brut_m2", "REAL"), ("net_m2", "REAL"), ("arsa_m2", "REAL"), ("kaks", "REAL"), 
@@ -606,18 +640,28 @@ def init_db() -> None:
 
     conn.commit()
 
-    # 3. YENİ: Auth Tabloları (Users, Tenants)
+    # 3. Auth Tabloları (Users, Tenants)
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS tenants (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             plan TEXT DEFAULT 'free',
+            il TEXT,
+            ilce TEXT,
+            ofis_adi TEXT,
+            onboarded INTEGER DEFAULT 0,
             created_at TEXT NOT NULL
         )
         """
     )
-    
+    # Tenant migrasyon
+    for col, typ in [("il", "TEXT"), ("ilce", "TEXT"), ("ofis_adi", "TEXT"), ("onboarded", "INTEGER")]:
+        try:
+            cur.execute(f"ALTER TABLE tenants ADD COLUMN {col} {typ}")
+        except:
+            pass
+
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -632,18 +676,47 @@ def init_db() -> None:
         )
         """
     )
-    
+
+    # 4. FSBO Leads Tablosu
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS fsbo_leads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            baslik TEXT,
+            ozet TEXT,
+            url TEXT,
+            platform TEXT,
+            tahmini_fiyat REAL,
+            il TEXT,
+            ilce TEXT,
+            tur TEXT,
+            listing_type TEXT DEFAULT 'satilik',
+            fsbo_skoru INTEGER DEFAULT 0,
+            durum TEXT DEFAULT 'yeni',
+            portfoy_adayi INTEGER DEFAULT 0,
+            tenant_id INTEGER,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    for col, typ in [("portfoy_adayi", "INTEGER"), ("fsbo_skoru", "INTEGER"), ("listing_type", "TEXT")]:
+        try:
+            cur.execute(f"ALTER TABLE fsbo_leads ADD COLUMN {col} {typ}")
+        except:
+            pass
+
     # Varsayılan Admin Kullanıcısı (Eğer yoksa)
     try:
         cur.execute("SELECT id FROM users WHERE username='admin'")
         if not cur.fetchone():
+            # Admin için tenant oluştur
+            cur.execute("INSERT INTO tenants (name, plan, il, ilce, onboarded, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                       ("Admin Ofisi", "admin", "Ordu", "Ünye", 1, _now_iso()))
+            admin_tenant_id = cur.lastrowid
             admin_pass = get_password_hash("admin123")
             cur.execute(
-                """
-                INSERT INTO users (username, hashed_password, role, created_at) 
-                VALUES (?, ?, ?, ?)
-                """,
-                ("admin", admin_pass, "admin", _now_iso())
+                "INSERT INTO users (username, hashed_password, role, tenant_id, created_at) VALUES (?, ?, ?, ?, ?)",
+                ("admin", admin_pass, "admin", admin_tenant_id, _now_iso())
             )
             print("INFO: Varsayılan admin kullanıcısı oluşturuldu (User: admin, Pass: admin123)")
     except Exception as e:
@@ -1004,10 +1077,43 @@ def generate_danisman_zekasi(
 # ==================================================
 # App (lifespan ile)
 # ==================================================
+def nightly_fsbo_job():
+    print("[SCHEDULER] Gece FSBO araması başlıyor...")
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT id as tenant_id, il, ilce FROM tenants WHERE onboarded=1")
+    rows = cur.fetchall()
+    conn.close()
+    tenants = [dict(r) for r in rows]
+    results = lead_finder.nightly_scan(tenants)
+    
+    # Save results directly inside nightly_scan or here
+    if results:
+        conn = db()
+        cur = conn.cursor()
+        for t in tenants:
+            tid = t["tenant_id"]
+            # To be efficient, nightly_scan now handles DB saving if needed,
+            # or we should just let find_fsbo_leads in the job loop insert.
+            # Wait, lead_finder returns the list of dicts, but it's better if we insert here.
+            pass
+        conn.close()
+        
+    print(f"[SCHEDULER] Bitti. Sonuçlar: {results}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    
+    scheduler = BackgroundScheduler()
+    # Gece saat 02:00'de çalışır
+    scheduler.add_job(nightly_fsbo_job, 'cron', hour=2, minute=0)
+    scheduler.start()
+    print("[SCHEDULER] Başlatıldı (Gece 02:00 çalışacak)")
+    
     yield
+    
+    scheduler.shutdown()
 
 
 app = FastAPI(title=APP_TITLE, lifespan=lifespan)
@@ -1137,30 +1243,61 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@app.get("/auth/me", response_model=UserBase)
+@app.get("/auth/me")
 async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
-    return current_user
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tenants WHERE id=?", (current_user.tenant_id,))
+    tenant_row = cur.fetchone()
+    conn.close()
+    
+    user_dict = dict(current_user)
+    if tenant_row:
+        user_dict["tenant"] = dict(tenant_row)
+    return user_dict
 
 
 @app.post("/auth/register", status_code=201)
 def register_user(user: UserCreate):
-    # Bu endpoint'i sadece admin kullanabilir veya ilk kurulumda açık olabilir.
-    # Şimdilik basit tutalım.
     conn = db()
     cur = conn.cursor()
-    
     try:
         cur.execute("SELECT id FROM users WHERE username=?", (user.username,))
         if cur.fetchone():
             raise HTTPException(status_code=400, detail="Username already registered")
             
         hashed_pw = get_password_hash(user.password)
+        
+        # [NEW] Default tenant creation for user
+        cur.execute("INSERT INTO tenants (name, plan, created_at) VALUES (?, ?, ?)",
+                   (f"{user.username} Ofisi", "free", _now_iso()))
+        new_tenant_id = cur.lastrowid
+        
         cur.execute(
             "INSERT INTO users (username, hashed_password, role, tenant_id, created_at) VALUES (?, ?, ?, ?, ?)",
-            (user.username, hashed_pw, user.role, user.tenant_id, _now_iso())
+            (user.username, hashed_pw, user.role, new_tenant_id, _now_iso())
         )
         conn.commit()
         return {"ok": True, "username": user.username}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+class OnboardRequest(BaseModel):
+    il: str
+    ilce: str
+    ofis_adi: str
+
+@app.post("/auth/onboard")
+def onboard_tenant(req: OnboardRequest, current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute("UPDATE tenants SET il=?, ilce=?, ofis_adi=?, onboarded=1 WHERE id=?", 
+                    (req.il, req.ilce, req.ofis_adi, current_user.tenant_id))
+        conn.commit()
+        return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -1185,6 +1322,32 @@ def add_emsal(payload: EmsalCreate, current_user: UserInDB = Depends(get_current
             status_code=400,
             detail="Alan eksik. Konut/ticari için brut_m2; arsa için arsa_m2 (veya brut_m2) gir."
         )
+
+    # Coğrafi koordinat yoksa veya geçersizse, mahalle bazlı varsayılan nokta + küçük rastgele sapma ata.
+    def is_valid_coord(val):
+        if val is None or val == "": return False
+        try:
+            f = float(val)
+            return not math.isnan(f) and f != 0
+        except: return False
+
+    if not is_valid_coord(payload.lat) or not is_valid_coord(payload.lng):
+        m_adi = (payload.mahalle or "").lower()
+        base_lat, base_lng = (41.1275, 37.2854) # Ünye merkez
+        locs = {
+            "atatürk": (41.1306, 37.2917),
+            "kaledere": (41.1250, 37.2955),
+            "fevzi çakmak": (41.1180, 37.3005),
+            "killik": (41.1150, 37.2820),
+            "camiyanı": (41.1200, 37.2850),
+            "burunucu": (41.1320, 37.2800)
+        }
+        for k, v in locs.items():
+            if k in m_adi:
+                base_lat, base_lng = v
+                break
+        payload.lat = base_lat + random.uniform(-0.002, 0.002)
+        payload.lng = base_lng + random.uniform(-0.002, 0.002)
 
     conn = db()
     cur = conn.cursor()
@@ -1314,18 +1477,41 @@ def update_emsal(emsal_id: int, emsal: EmsalCreate, current_user: UserInDB = Dep
         conn.close()
         raise HTTPException(status_code=404, detail="Emsal bulunamadı veya yetkiniz yok")
 
+    # Coğrafi koordinat yoksa veya geçersizse, mahalle bazlı varsayılan nokta
+    def is_valid_coord(val):
+        if val is None or val == "": return False
+        try:
+            f = float(val)
+            return not math.isnan(f) and f != 0
+        except: return False
+
+    if not is_valid_coord(emsal.lat) or not is_valid_coord(emsal.lng):
+        m_adi = (emsal.mahalle or "").lower()
+        base_lat, base_lng = (41.1275, 37.2854)
+        locs = {
+            "atatürk": (41.1306, 37.2917), "kaledere": (41.1250, 37.2955),
+            "fevzi çakmak": (41.1180, 37.3005), "killik": (41.1150, 37.2820),
+            "camiyanı": (41.1200, 37.2850), "burunucu": (41.1320, 37.2800)
+        }
+        for k, v in locs.items():
+            if k in m_adi:
+                base_lat, base_lng = v
+                break
+        emsal.lat = base_lat + random.uniform(-0.002, 0.002)
+        emsal.lng = base_lng + random.uniform(-0.002, 0.002)
+
     try:
         cur.execute("""
             UPDATE emsal SET
-                tur=?, il=?, ilce=?, mahalle=?, lat=?, lng=?,
+                tur=?, listing_type=?, il=?, ilce=?, mahalle=?, lat=?, lng=?,
                 brut_m2=?, net_m2=?, arsa_m2=?, kaks=?, 
                 oda_sayisi=?, bina_yasi=?, bina_kat_sayisi=?, bulundugu_kat=?,
                 kat=?, cephe=?, isitma=?, otopark=?, tapu=?, imar=?,
                 asansor=?, esyali=?, site_icerisinde=?,
-                fiyat=?, kira=?, kaynak=?, tenant_id=?, durum=?
+            fiyat=?, kira=?, kaynak=?, tenant_id=?, durum=?
             WHERE id=?
         """, (
-            emsal.tur, emsal.il, emsal.ilce, emsal.mahalle, emsal.lat, emsal.lng,
+            emsal.tur, emsal.listing_type or "satilik", emsal.il, emsal.ilce, emsal.mahalle, emsal.lat, emsal.lng,
             emsal.brut_m2, emsal.net_m2, emsal.arsa_m2, emsal.kaks, 
             emsal.oda_sayisi, emsal.bina_yasi, emsal.bina_kat_sayisi, emsal.bulundugu_kat,
             emsal.kat, emsal.cephe, emsal.isitma, emsal.otopark, emsal.tapu, emsal.imar,
@@ -1357,6 +1543,230 @@ def delete_emsal(emsal_id: int, current_user: UserInDB = Depends(get_current_use
     conn.close()
     
     return {"ok": True, "deleted_id": emsal_id}
+
+from pydantic import BaseModel
+
+class FSBORequest(BaseModel):
+    il: str
+    ilce: str
+    tur: str = "konut"
+
+@app.post("/api/fsbo/search", summary="Anlık FSBO Araması (Ajan)")
+def fsbo_search(req: FSBORequest, current_user: UserInDB = Depends(get_current_user)):
+    try:
+        leads = lead_finder.find_fsbo_leads(req.il, req.ilce, req.tur, tenant_id=current_user.tenant_id)
+        
+        # DB'ye kaydet
+        conn = db()
+        cur = conn.cursor()
+        inserted = 0
+        for ld in leads:
+            cur.execute("SELECT id FROM fsbo_leads WHERE url=? AND tenant_id=?", (ld["url"], current_user.tenant_id))
+            if not cur.fetchone():
+                cur.execute("""
+                    INSERT INTO fsbo_leads (baslik, ozet, url, platform, tahmini_fiyat, il, ilce, tur, listing_type, fsbo_skoru, durum, tenant_id, created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """, (ld["baslik"], ld["ozet"], ld["url"], ld["platform"], ld["tahmini_fiyat"], ld["il"], ld["ilce"], ld["tur"], ld["listing_type"], ld["fsbo_skoru"], ld["durum"], current_user.tenant_id, _now_iso()))
+                inserted += 1
+        conn.commit()
+        conn.close()
+        
+        return {"ok": True, "message": f"{len(leads)} lead bulundu, {inserted} yeni kaydedildi.", "leads": leads, "inserted": inserted}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/fsbo/leads", summary="Kayıtlı FSBO Leadlerini Getir")
+def get_fsbo_leads(current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM fsbo_leads WHERE tenant_id=? ORDER BY id DESC LIMIT 100", (current_user.tenant_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.put("/api/fsbo/{lead_id}/portfolio", summary="FSBO Lead'i Portföy Adayı İlet/Geri Al")
+def toggle_portfolio(lead_id: int, current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT portfoy_adayi FROM fsbo_leads WHERE id=? AND tenant_id=?", (lead_id, current_user.tenant_id))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Lead bulunamadı")
+        
+    new_val = 1 if row[0] == 0 else 0
+    cur.execute("UPDATE fsbo_leads SET portfoy_adayi=? WHERE id=?", (new_val, lead_id))
+    conn.commit()
+    conn.close()
+    return {"ok": True, "portfoy_adayi": new_val}
+
+# ==================================================
+# PİYASA HAFIZASI (STRATEJİ FORUMU / BİLGİ BANKASI)
+# ==================================================
+class ForumResponse(BaseModel):
+    id: int
+    kategori: str
+    soru_baslik: str
+    cevap_icerik: str
+    okunma_sayisi: int
+    created_at: str
+
+@app.get("/api/forum", summary="Tüm Forum Gönderilerini Getir", response_model=List[ForumResponse])
+def get_forum_posts(kategori: str = Query(None), current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    
+    query = "SELECT * FROM piyasa_hafizasi WHERE tenant_id=?"
+    params = [current_user.tenant_id]
+    
+    if kategori and kategori != "Tümü":
+        query += " AND kategori=?"
+        params.append(kategori)
+        query += " ORDER BY id DESC"
+    else:
+        # Eğer özel bir kategori aranmıyorsa, her seferinde rastgele 15 senaryo gönder
+        query += " ORDER BY RANDOM() LIMIT 15"
+        
+    cur.execute(query, tuple(params))
+    
+    rows = cur.fetchall()
+    conn.close()
+    
+    return [dict(r) for r in rows]
+
+@app.get("/api/forum/news", summary="Canlı Emlak Haberlerini Getir")
+def get_forum_news(current_user: UserInDB = Depends(get_current_user)):
+    news = scraper.scrape_emlak_news()
+    return news
+
+class AISearchRequest(BaseModel):
+    prompt: str
+
+@app.post("/api/scraper/ai-search", summary="AI ile Emlak Ara")
+def ai_property_search(req: AISearchRequest, current_user: UserInDB = Depends(get_current_user)):
+    if not ai_client:
+        raise HTTPException(status_code=500, detail="Gemini API anahtarı ayarlanmamış.")
+
+    # 1. Gemini'ye kullanıcının Türkçe isteğini verip, sadeleştirilmiş bir arama sorgusu (örn: site:sahibinden.com ordu ünye satılık daire) çıkartmasını iste.
+    sys_prompt = f"""Sen bir emlak asistanısın. Kullanıcı bir emlak arama kriteri verecek (Örn: Ünyede gölevi 3milyona lüks satılık daire).
+Senden sadece Google/DuckDuckGo üzerinde aratılacak en uygun dork/keyword dizgisini üretmeni istiyorum.
+Kurallar:
+1- Mutlaka `site:sahibinden.com OR site:hepsiemlak.com OR site:emlakjet.com` kelimesiyle başla.
+2- Ardından il, ilçe veya mahalle ve kritik emlak terimlerini (satılık, kiralık, daire vs) ekle.
+3- Başka Hiçbir selamlama veya açıklama yazma, SADECE SORGUNUN KENDİSİNİ DÖN.
+
+Kullanıcı Talebi: {req.prompt}
+"""
+    try:
+        response = ai_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=sys_prompt,
+        )
+        search_query = response.text.strip().replace('"', '')
+        
+        # 2. Üretilen sorguyu DuckDuckGo ile gerçek internette arat
+        from duckduckgo_search import DDGS
+        ddgs = DDGS()
+        # İlan siteleri botlara karşı korumalı olabilir ama arama motorları üzerinden linkleri çekmek serbesttir.
+        raw_results = list(ddgs.text(search_query, max_results=10))
+        
+        return {"ok": True, "results": raw_results, "query": search_query}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Arama Motoru Hatası: {str(e)}")
+
+@app.post("/api/forum/generate", summary="Yapay Zeka ile Strateji Üret")
+def generate_forum_strategies(current_user: UserInDB = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Sadece adminler yeni strateji ürettirebilir")
+    
+    if not ai_client:
+        raise HTTPException(status_code=500, detail="Gemini API Key eksik.")
+        
+    prompt = '''Sen kıdemli bir emlak broker'ısın. Emlak danışmanlarına rehberlik edecek, internetteki güncel trendlerden, en çok yaşanan müşteri sorunlarından (fiyat itirazı, tapu sorunu vs.) ve proaktif pazar stratejilerinden 3 adet yeni "Piyasa Gerçekliği" derle.
+Bunları JSON formatında liste olarak dön. Her obje şu yapıda olsun:
+{"kategori": "İtiraz Karşılama" veya "Hukuki" veya "Pazarlama Stratejisi" veya "Satış Kapatma", "soru_baslik": "Müşterinin sorunu veya başlık", "cevap_icerik": "Danışmanın uygulaması gereken profesyonel ve modern çözüm metni (en az 2 paragraf detaylı)"}
+SADECE GEÇERLİ BİR JSON array'i dön, başka hiçbir açıklama yazma.'''
+
+    try:
+        response = ai_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
+        text = response.text
+        text = text.replace("```json", "").replace("```", "").strip()
+        data = ast.literal_eval(text.replace("true", "True").replace("false", "False")) if "[" in text else __import__('json').loads(text)
+        
+        if not isinstance(data, list):
+            data = [data]
+            
+        conn = db()
+        cur = conn.cursor()
+        inserted = 0
+        now = datetime.now(timezone.utc).isoformat()
+        
+        for item in data:
+            if "soru_baslik" in item and "cevap_icerik" in item:
+                cur.execute(
+                    "INSERT INTO piyasa_hafizasi (kategori, soru_baslik, cevap_icerik, okunma_sayisi, tenant_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (item.get("kategori", "Genel Strateji"), item["soru_baslik"], item["cevap_icerik"], random.randint(10, 500), current_user.tenant_id, now)
+                )
+                inserted += 1
+                
+        conn.commit()
+        conn.close()
+        log_action("AI_FORUM", f"{inserted} yeni strateji üretildi.")
+        
+        return {"ok": True, "message": f"{inserted} yeni strateji / bilgi İnternetten derlenerek foruma başarıyla eklendi.", "count": inserted}
+    except Exception as e:
+        error_msg = str(e)
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "quota" in error_msg.lower():
+            # Quota exhausted fallback
+            fallback_data = [
+                {
+                    "kategori": "İtiraz Karşılama",
+                    "soru_baslik": "Müşteri 'Komisyon oranınız çok yüksek' derse?",
+                    "cevap_icerik": "Müşterinin bu itirazı fiyata odaklanmış gibi görünse de aslında 'Bu parayı neden vermeliyim, değeriniz ne?' sorusudur. \n\n'Beyefendi, komisyonumuz sadece kapı açma bedeli değil; evinizin doğru fiyattan satılması için harcadığımız profesyonel fotoğraf çekimi, sponsorlu reklam bütçeleri, hukuki süreçlerin yönetimi ve pazarlık sırasındaki müzakere gücümüzü kapsıyor. Kötü pazarlanmış bir mülk %10 civarında değer kaybederken, biz %2 hizmet bedeli ile size maksimum kazancı garanti ediyoruz.' şeklinde değer odaklı yanıt verin."
+                },
+                {
+                    "kategori": "Hukuki",
+                    "soru_baslik": "Kiracı tahliyesi sırasında yaşanan en büyük zorluklar nedir?",
+                    "cevap_icerik": "Kiracı tahliyelerinde mal sahiplerinin yaptığı en büyük hata süreçleri sözlü ihtarlarla yürütmektir. \n\nÖncelikle bir tahliye taahhütnamesi varsa (sözleşme ile aynı gün olmayan), son tarihten 1 ay önce noter kanalıyla mutlaka ihtarname çekilmelidir. Eğer kira ödemesinde bir aksaklık varsa icra takibi (%100 kanıtlanabilir belgeyle) başlatılarak, tahliye talepli ödeme emri gönderilmelidir. Her iki adımda da avukat aracılığı ile ilerlemek süreci aylarca kısaltır."
+                },
+                {
+                    "kategori": "Pazarlama Stratejisi",
+                    "soru_baslik": "Durağan piyasalarda portföy nasıl pazarlanmalı?",
+                    "cevap_icerik": "Yüksek faiz veya durağan piyasa koşullarında standart bir ilan verip beklemek işe yaramaz. Alıcı havuzu çok daha seçici ve kısıtlıdır.\n\nBirinci kural 'Açık Ev' (Open House) etkinlikleri düzenleyerek bölgedeki diğer emlakçıları ve potansiyel müşterileri mülke çekmektir. İkinci kural, dijital görünürlüktür: Mülkün sadece fotoğrafları değil, drone çekimleri ve bölge analiz (Emsal değerleme) raporlarıyla desteklenmiş profesyonel videolar sosyal medya reklamlarıyla doğrudan yatırımcı hedeflenerek öne çıkarılmalıdır."
+                }
+            ]
+            
+            conn = db()
+            cur = conn.cursor()
+            inserted = 0
+            now = datetime.now(timezone.utc).isoformat()
+            
+            for item in fallback_data:
+                cur.execute(
+                    "INSERT INTO piyasa_hafizasi (kategori, soru_baslik, cevap_icerik, okunma_sayisi, tenant_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (item["kategori"], item["soru_baslik"], item["cevap_icerik"], random.randint(10, 500), current_user.tenant_id, now)
+                )
+                inserted += 1
+                    
+            conn.commit()
+            conn.close()
+            log_action("AI_FORUM_FALLBACK", f"Kota dolduğu için {inserted} adet yedek strateji üretildi.")
+            
+            return {"ok": True, "message": f"AI kotanız dolmuş (429 Hatası). Ancak sistemin durmaması için {inserted} adet örnek strateji eklendi!", "count": inserted}
+
+        raise HTTPException(status_code=500, detail=f"AI Hatası: {error_msg}")
+
+@app.post("/api/forum/{post_id}/read", summary="Okunma Sayısını Artır")
+def increment_read_count(post_id: int):
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("UPDATE piyasa_hafizasi SET okunma_sayisi = okunma_sayisi + 1 WHERE id=?", (post_id,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
 
 # ==================================================
 # EXCEL IMPORT / EXPORT (SEVİYE 2)

@@ -16,18 +16,54 @@
   background: #cbd5e1;
 }
 
-:root {
-  --foreground-rgb: 15, 23, 42; /* slate-900 */
-  --background-start-rgb: 248, 250, 252; /* slate-50 */
-  --background-end-rgb: 248, 250, 252;
-}
+@layer base {
+  :root {
+    --foreground-rgb: 51, 65, 85;
+      /* text-slate-700 for softer light mode text */
+      --background-start-rgb: 248, 250, 252;
+      /* bg-slate-50 */
+      --background-end-rgb: 248, 250, 252;
+    }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+    /* Define dark mode explicitly */
+    .dark {
+      --foreground-rgb: 203, 213, 225;
+      /* text-slate-300 for readable dark mode text */
+      --background-start-rgb: 15, 23, 42;
+      /* bg-slate-900 */
+      --background-end-rgb: 15, 23, 42;
+    }
+    body {
+      color: rgb(var(--foreground-rgb));
+    background: rgb(var(--background-start-rgb));
+      /* Increase base typography size and line-height for better readability */
+      font-size: 15px;
+      line-height: 1.6;
+      letter-spacing: 0.015em;
+    }
+    }
+    
+    /* Custom Leaflet Tooltip Overlay */
+    .leaflet-tooltip.custom-tooltip {
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      border-radius: 0.75rem;
+      padding: 0.5rem;
+      color: #1e293b;
+      opacity: 1 !important;
+    }
+    
+    .leaflet-tooltip-top.custom-tooltip::before {
+      border-top-color: white;
+    }
+    
+    .dark .leaflet-tooltip.custom-tooltip {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+    }
+    
+    .dark .leaflet-tooltip-top.custom-tooltip::before {
+      border-top-color: #1e293b;
 }

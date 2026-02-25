@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -153,24 +153,24 @@ const MapComponent = ({ emsals, target, onBoundsChange }: MapProps) => {
 
         {/* Static Office Marker */}
         <Marker position={OFFICE_LOC} icon={officeIcon}>
-             <Popup>
-                <div className="font-sans text-xs text-center">
+          <Tooltip direction="top" offset={[0, -30]} className="custom-tooltip">
+            <div className="font-sans text-xs text-center p-1">
                     <p className="font-bold text-green-600 mb-1">MERKEZ OFİS</p>
-                    <p>Bedesten İş Merkezi No:3z</p>
-                    <p>Ünye / ORDU</p>
+              <p className="text-slate-600">Bedesten İş Merkezi No:3z</p>
+              <p className="text-slate-500">Ünye / ORDU</p>
                 </div>
-            </Popup>
+          </Tooltip>
         </Marker>
         
         {/* Target Property Marker */}
         {target && (
             <Marker position={[target.lat, target.lng]} icon={targetIcon}>
-                <Popup>
-                    <div className="font-sans text-xs text-center">
-                        <p className="font-bold text-red-600 mb-1">HEDEF MÜLK</p>
-                        <p>Değerlenen Konum</p>
+            <Tooltip direction="top" offset={[0, -30]} className="custom-tooltip">
+              <div className="font-sans text-xs text-center p-1">
+                <p className="font-bold text-red-600 mb-1 flex items-center gap-1 justify-center">🎯 HEDEF MÜLK</p>
+                <p className="text-slate-600 font-medium">Değerlenen Konum</p>
                     </div>
-                </Popup>
+            </Tooltip>
             </Marker>
         )}
 
@@ -199,15 +199,19 @@ const MapComponent = ({ emsals, target, onBoundsChange }: MapProps) => {
           
           return (
             <Marker key={`${p.id}-${p.tur}-${Date.now()}`} position={[renderLat, renderLng]} icon={getIcon(p.tur)}>
-                <Popup>
-                <div className="font-sans text-xs">
-                    <p className="font-bold border-b pb-1 mb-1">{p.tur?.toUpperCase()} - {p.mahalle || "Bölge"}</p>
-                    <p className="text-blue-600 font-bold">{(p.fiyat || 0).toLocaleString()} TL</p>
-                    {/* Debug Info */}
-                    <p className="text-[10px] text-gray-400 mt-1">Algılanan: {debugColor}</p>
-                    {overlapCount > 0 && <p className="text-[10px] text-red-400 font-bold">(Çakışma: Kaydırıldı)</p>}
+              <Tooltip direction="top" offset={[0, -30]} className="custom-tooltip" opacity={1}>
+                <div className="font-sans text-sm min-w-[150px] p-1">
+                  <div className="flex justify-between items-start border-b border-slate-100 pb-2 mb-2">
+                    <p className="font-bold text-slate-800">{p.tur?.toUpperCase()}</p>
+                    <p className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-medium">{p.listing_type === 'kiralik' ? 'Kiralık' : 'Satılık'}</p>
+                  </div>
+                  <p className="text-primary text-base font-bold mb-1">{(p.fiyat || 0).toLocaleString()} TL</p>
+                  <p className="text-slate-600 font-medium text-xs mb-1">📍 {p.mahalle || "Bölge"}</p>
+                  <p className="text-slate-500 text-xs">📏 {p.brut_m2 ? `${p.brut_m2} m²` : (p.arsa_m2 ? `${p.arsa_m2} m²` : "?")}</p>
+
+                  {overlapCount > 0 && <p className="text-[10px] text-orange-500 font-bold mt-2 pt-2 border-t border-slate-100">(Yakın Nokta Düzenlemesi)</p>}
                 </div>
-                </Popup>
+              </Tooltip>
             </Marker>
           );
         })}

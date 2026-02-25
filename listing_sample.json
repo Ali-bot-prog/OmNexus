@@ -1,0 +1,91 @@
+{
+  "id": 19046808,
+  "categoryTypeName": "Konut",
+  "tradeTypeName": "Satılık",
+  "estateTypeName": "Daire",
+  "title": "Atatürk Mahallesinde 3+1 Geniş Daire",
+  "url": "/ilan/ataturk-mahallesinde-31-genis-daire-19046808",
+  "images": [
+    "/listing/19046808/A14DE33C7FEF17E74963C876FD68C6E219046808.jpg"
+  ],
+  "imagesFullPath": [
+    "https://imaj.emlakjet.com/listing/19046808/A14DE33C7FEF17E74963C876FD68C6E219046808.jpg"
+  ],
+  "locationSummary": "Ünye - Atatürk Mahallesi",
+  "quickInfos": [
+    {
+      "key": "room_count",
+      "name": "Oda Sayısı",
+      "value": "3+1"
+    },
+    {
+      "key": "floor_number",
+      "name": "Bulunduğu Kat",
+      "value": "2. Kat"
+    }
+  ],
+  "location": {
+    "summary": "Ünye - Atatürk Mahallesi",
+    "city": {
+      "id": 52,
+      "name": "Ordu",
+      "slug": "ordu"
+    },
+    "district": {
+      "id": 1706,
+      "name": "Ünye",
+      "slug": "ordu-unye"
+    },
+    "locality": {
+      "id": 10003369,
+      "name": "Tekkiraz",
+      "slug": "tekkiraz"
+    },
+    "town": {
+      "id": 60952,
+      "name": "Atatürk Mahallesi",
+      "slug": "ordu-unye-ataturk-mahallesi"
+    },
+    "coordinate": {
+      "lat": 41.1418943284688,
+      "lon": 37.266552709043026
+    }
+  },
+  "roomCountName": "3+1",
+  "floorName": "2",
+  "squareMeter": 140,
+  "badges": [
+    "new"
+  ],
+  "listingLogo": "",
+  "videoUrl": null,
+  "virtualTourUrl": null,
+  "phoneNumber": "+908503991844",
+  "priceDetail": {
+    "trendType": null,
+    "previousCurrency": null,
+    "previousPrice": null,
+    "previousValueValid": null,
+    "currency": "TL",
+    "price": 4500000,
+    "tlPrice": 4500000,
+    "alternativeValue": "Satılık",
+    "firstPrice": 4500000,
+    "differenceRate": 0,
+    "squareMeterPrice": 0,
+    "opportunity": false
+  },
+  "landSubStructuralFeatures": {},
+  "createdAt": "2026-02-21T13:38:54Z",
+  "firstPublishedAt": "2026-02-21T13:39:02Z",
+  "updatedAt": "2026-02-21T13:39:02Z",
+  "decorator": {
+    "boardUrl": null
+  },
+  "owner": {
+    "id": 2107867,
+    "name": "TREND GAYRİMENKUL",
+    "type": "corporate"
+  },
+  "coverPhotoFull": "https://imaj.emlakjet.com/listing/19046808/A14DE33C7FEF17E74963C876FD68C6E219046808.jpg"
+}

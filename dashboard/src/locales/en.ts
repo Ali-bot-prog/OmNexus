@@ -5,6 +5,8 @@ export const en = {
     new: "NEW",
     emsalManagement: "Comparable Management",
     mapAnalysis: "Map Analysis",
+    dataMining: "FSBO Finder",
+    strategyForum: "Strategy Forum",
     deviceStatus: "Device Status",
     aiActive: "AI Active",
     overview: "Overview",

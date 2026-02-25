@@ -25,6 +25,10 @@ interface EmsalItem {
   created_at: string;
   lat?: number;
   lng?: number;
+  bulundugu_kat?: number;
+  bina_kat_sayisi?: number;
+  isitma?: string;
+  tapu?: string;
 }
 
 export default function EmsalPage() {
@@ -33,7 +37,7 @@ export default function EmsalPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
-  const LIMIT = 50;
+  const LIMIT = 25;
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,6 +82,8 @@ export default function EmsalPage() {
       if (filters.listingType) {
         params.append("listing_type", filters.listingType);
       }
+
+      params.append("ts", new Date().getTime().toString());
 
       const res = await fetch(`http://localhost:5555/emsal?${params.toString()}`, {
          headers: getAuthHeaders() as any
@@ -182,8 +188,8 @@ export default function EmsalPage() {
     <main className="p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Emsal Yönetimi</h1>
-          <p className="text-slate-500 text-sm">Veritabanındaki tüm kayıtları düzenleyin.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Emsal Yönetimi</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Veritabanındaki tüm kayıtları düzenleyin.</p>
         </div>
         
         <div className="flex gap-3">
@@ -221,9 +227,9 @@ export default function EmsalPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
          {/* Toolbar */}
-        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 bg-slate-50/50">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row gap-4 bg-slate-50/50 dark:bg-slate-900/50">
           {/* Search */}
             <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -232,7 +238,7 @@ export default function EmsalPage() {
                  placeholder="İlçe veya mahalle ara... (Enter)" 
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              className="pl-10 pr-4 py-2 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                />
             </form>
 
@@ -241,7 +247,7 @@ export default function EmsalPage() {
             <select
               value={filters.tur}
               onChange={(e) => { setFilters({ ...filters, tur: e.target.value }); setPage(0); }}
-              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
+              className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
             >
               <option value="">Tüm Türler</option>
               <option value="konut">Konut</option>
@@ -252,7 +258,7 @@ export default function EmsalPage() {
             <select
               value={filters.listingType}
               onChange={(e) => { setFilters({ ...filters, listingType: e.target.value }); setPage(0); }}
-              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
+              className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
             >
               <option value="">Tüm İlan Tipleri</option>
               <option value="satilik">Satılık</option>
@@ -262,7 +268,7 @@ export default function EmsalPage() {
             <select
               value={filters.durum}
               onChange={(e) => { setFilters({ ...filters, durum: e.target.value }); setPage(0); }}
-              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
+              className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
             >
               <option value="">Tüm Durumlar</option>
               <option value="aktif">Aktif</option>
@@ -290,7 +296,7 @@ export default function EmsalPage() {
          {/* Grid */}
          <div className="overflow-x-auto min-h-[400px]">
            <table className="w-full text-left text-sm">
-             <thead className="bg-slate-50 text-slate-500 font-semibold uppercase text-xs tracking-wider">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-semibold uppercase text-xs tracking-wider">
                <tr>
                  <th className="p-4">Sıra</th>
                  <th className="p-4">Tür</th>
@@ -298,18 +304,22 @@ export default function EmsalPage() {
                  <th className="p-4">Fiyat</th>
                  <th className="p-4">Büyüklük</th>
                  <th className="p-4">Bina Yaşı</th>
+                <th className="p-4">Bulunduğu Kat</th>
+                <th className="p-4">Bina Kat Sayısı</th>
+                <th className="p-4">Isıtma Tipi</th>
+                <th className="p-4">Tapu Durumu</th>
                  <th className="p-4">Tarih</th>
                  <th className="p-4 text-right">İşlemler</th>
                </tr>
              </thead>
-             <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                {loading ? (
                  <tr><td colSpan={8} className="p-8 text-center text-slate-400">Yükleniyor...</td></tr>
                ) : emsals.length === 0 ? (
                  <tr><td colSpan={8} className="p-8 text-center text-slate-400">Kayıt bulunamadı.</td></tr>
                ) : (
                   emsals.map((e, index) => (
-                    <tr key={e.id} className="hover:bg-slate-50 transition-colors group">
+                    <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
                       <td className="p-4 font-mono text-slate-400">#{index + 1 + (page * LIMIT)}</td>
                   <td className="p-4">
                         <div className="flex flex-col gap-1">
@@ -329,10 +339,10 @@ export default function EmsalPage() {
                         </div>
                   </td>
                      <td className="p-4">
-                       <div className="font-medium text-slate-800">{e.ilce}</div>
-                       <div className="text-xs text-slate-500">{e.mahalle}</div>
+                        <div className="font-medium text-slate-800 dark:text-slate-200">{e.ilce}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">{e.mahalle}</div>
                      </td>
-                     <td className="p-4 font-bold text-slate-900">{e.fiyat.toLocaleString()} TL</td>
+                      <td className="p-4 font-bold text-slate-900 dark:text-white">{e.fiyat.toLocaleString()} TL</td>
                      <td className="p-4">
                         {e.tur === "arsa" ? (
                            <div>{e.arsa_m2} m² (Arsa)</div>
@@ -344,6 +354,12 @@ export default function EmsalPage() {
                         )}
                      </td>
                      <td className="p-4 text-slate-600">{e.bina_yasi !== undefined ? `${e.bina_yasi} Yaş` : "-"}</td>
+                      <td className="p-4 text-slate-600">
+                        {e.bulundugu_kat !== undefined ? e.bulundugu_kat : (e.kat || "-")}
+                      </td>
+                      <td className="p-4 text-slate-600">{e.bina_kat_sayisi !== undefined ? e.bina_kat_sayisi : "-"}</td>
+                      <td className="p-4 text-slate-600">{e.isitma || "Bilinmiyor"}</td>
+                      <td className="p-4 text-slate-600">{e.tapu || "-"}</td>
                      <td className="p-4 text-slate-500 text-xs">{new Date(e.created_at).toLocaleDateString("tr-TR")}</td>
                      <td className="p-4">
                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -369,7 +385,7 @@ export default function EmsalPage() {
          </div>
          
          {/* Pagination Controls */}
-         <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
             <div className="text-sm text-slate-500">
                Sayfa {page + 1}
             </div>
@@ -377,14 +393,14 @@ export default function EmsalPage() {
                <button 
                  onClick={() => setPage(p => Math.max(0, p - 1))}
                  disabled={page === 0 || loading}
-                 className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50"
+              className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
                >
                  Önceki
                </button>
                <button 
                  onClick={() => setPage(p => p + 1)}
                  disabled={emsals.length < LIMIT || loading}
-                 className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50"
+              className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
                >
                  Sonraki
                </button>
