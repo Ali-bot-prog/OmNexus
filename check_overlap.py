@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.expanduser("~"), "PusulaGayrimenkulV5_2", "db.sqlite")
+from config import DB_PATH  # centralized in config.py
 
 def check_overlap():
     if not os.path.exists(DB_PATH):

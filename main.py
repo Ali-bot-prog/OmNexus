@@ -35,29 +35,24 @@ from apscheduler.schedulers.background import BackgroundScheduler
 # ==================================================
 # CONFIG
 # ==================================================
-APP_TITLE = "OmNexus - Akıllı Emlak Platformu"
-BASE_DIR = os.path.join(os.path.expanduser("~"), "PusulaGayrimenkulV5_2")
-DB_PATH = os.path.join(BASE_DIR, "db.sqlite")
-PORT = 5555
-
-os.makedirs(BASE_DIR, exist_ok=True)
+# import shared constants; helps prevent drift between scripts
+from config import (
+    APP_TITLE,
+    BASE_DIR,
+    DB_PATH,
+    PORT,
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    GEMINI_API_KEY,
+)
 
 PropertyTur = Literal["konut", "arsa", "ticari"]
 
 # [LLM] Client Initialization
-# [LLM] Client Initialization
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyBoHtAsMYcRSJqEugGCmoL4mmX1t77_Fp0")
 ai_client = None
 if GEMINI_API_KEY:
     ai_client = genai.Client(api_key=GEMINI_API_KEY)
-
-
-# ==================================================
-# SECURITY CONFIG
-# ==================================================
-SECRET_KEY = "super-gizli-anahtar-degistirilecek" # Production'da env'den al
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 1 gün
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 

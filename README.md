@@ -37,3 +37,15 @@ Proje dizininde yer alan, tüm frontend ve backend port çakışmalarını önle
 ## ⚙️ Çevresel Değişkenler (ENV)
 
 Uygulamanın yapay zeka yeteneklerini tam kapasiteyle kullanabilmesi için sisteminizde tanımlı bir `GEMINI_API_KEY` sistem değişkenine (Environment Variable) veya üretim ortamında uygun gizli anahtarlara ihtiyacınız vardır. (Varsayılan olarak test anahtarı atanmıştır.)
+
+---
+
+## Proje Bakımı İçin İpuçları
+
+* **Ortak konfigürasyon** – `config.py` dosyası, tüm sabitleri (DB_PATH, BASE_DIR, SECRET_KEY vb.) merkezi olarak barındırır. Yeni bir script oluştururken bu değerleri tekrar yazmayın, modülden import edin.
+* **Detaylı docstringler** – fonksiyon başlarında açıklama yazmak, otomatik dokümantasyon üretimi ve IDE desteği için önemlidir. Özellikle `main.py` ve `scraper.py` gibi büyük dosyalarda kullanın.
+* **Çevresel değerler** – gizli anahtar ve API token’ları kodda sabitlemek yerine `.env` veya ortam değişkenleri kullanın.
+* **Veri deposu değişiklikleri** – veritabanı şemasına ekleme/silme işlemleri `init_db()` fonksiyonuna belgelendirilmiş olmalı; mümkünse migration araçlarıyla yönetilmeli.
+* **Küçük modüller** – tek bir dosyada birkaç yüz satır kod varsa, fonksiyonları mantıksal modüllere ayırın (`utils.py`, `db.py`, `scraper.py` vb.) bu, test yazmayı da kolaylaştırır.
+
+Bu adımlar, kodun büyümesini ve projeye yeni geliştiricilerin katılımını çok daha sorunsuz hale getirir.

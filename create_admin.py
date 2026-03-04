@@ -4,7 +4,7 @@ import bcrypt
 from datetime import datetime, timezone
 
 # Config
-DB_PATH = os.path.join(os.path.expanduser("~"), "PusulaGayrimenkulV5_2", "db.sqlite")
+from config import DB_PATH
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
