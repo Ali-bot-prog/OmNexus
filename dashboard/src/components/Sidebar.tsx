@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, MapPin, Filter, Calculator, Database, MessageSquare, Search } from "lucide-react";
+import { TrendingUp, MapPin, Filter, Calculator, Database, MessageSquare, Search, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
@@ -96,6 +96,47 @@ export default function Sidebar() {
           <MessageSquare className="w-5 h-5" />
           {t.common.strategyForum}
           <span className="ml-auto text-[10px] bg-rose-100 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">AI</span>
+        </Link>
+      </div>
+
+      {/* new site management section */}
+      <div className="flex flex-col gap-2 mt-6">
+        <div className="text-xs font-semibold text-slate-400 tracking-wider uppercase mb-2">Yönetim</div>
+        <Link
+          href="/site"
+          className={`flex items-center gap-3 p-3 rounded-xl font-semibold transition-all ${
+            isActive("/site") ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <Database className="w-5 h-5" />
+          İçerik
+        </Link>
+        <Link
+          href="/faq"
+          className={`flex items-center gap-3 p-3 rounded-xl font-semibold transition-all ${
+            isActive("/faq") ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <Database className="w-5 h-5" />
+          S.S.S
+        </Link>
+        <Link
+          href="/messages"
+          className={`flex items-center gap-3 p-3 rounded-xl font-semibold transition-all ${
+            isActive("/messages") ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <MessageSquare className="w-5 h-5" />
+          Mesajlar
+        </Link>
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 p-3 rounded-xl font-semibold transition-all ${
+            isActive("/settings") ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <Settings className="w-5 h-5" />
+          Ayarlar
         </Link>
       </div>
 

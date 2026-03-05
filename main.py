@@ -172,6 +172,46 @@ def init_db() -> None:
         """
     )
 
+    # New admin/content tables
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS site_content (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT UNIQUE NOT NULL,
+            value TEXT,
+            tenant_id INTEGER,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS faq (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            tenant_id INTEGER,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS contact_message (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            phone TEXT,
+            message TEXT NOT NULL,
+            read INTEGER DEFAULT 0,
+            tenant_id INTEGER,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+
     # USER Migrasyonu (tenant_id ekle)
     try:
         cur.execute("ALTER TABLE users ADD COLUMN tenant_id INTEGER")
@@ -429,6 +469,28 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+# --------------------------------------------------
+# Content & FAQ Models
+# --------------------------------------------------
+class SiteContentItem(BaseModel):
+    key: str
+    value: Optional[str] = None
+
+class FAQItem(BaseModel):
+    question: str
+    answer: str
+
+class ContactMessageIn(BaseModel):
+    name: str
+    email: str
+    phone: Optional[str] = None
+    message: str
+
+class ContactMessageOut(ContactMessageIn):
+    id: int
+    read: bool = False
+    created_at: str
 
 class UserInDB(UserBase):
     id: int
@@ -1307,6 +1369,148 @@ def property_types():
 # ==================================================
 # EMSAL CRUD
 # ==================================================
+
+# --------------------------------------------------
+# Site Content Endpoints
+# --------------------------------------------------
+@app.get("/api/site-content")
+def get_site_content(current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT key, value FROM site_content WHERE tenant_id=?", (current_user.tenant_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return {row['key']: row['value'] for row in rows}
+
+@app.put("/api/site-content")
+def update_site_content(items: Dict[str, Optional[str]], current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        for key, value in items.items():
+            cur.execute(
+                "INSERT INTO site_content (key, value, tenant_id, created_at) VALUES (?, ?, ?, ?)"
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (key, value, current_user.tenant_id, _now_iso())
+            )
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+# --------------------------------------------------
+# FAQ Endpoints
+# --------------------------------------------------
+@app.get("/api/faq")
+def list_faq(current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, question, answer FROM faq WHERE tenant_id=? ORDER BY id DESC", (current_user.tenant_id,))
+    faqs = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return faqs
+
+@app.post("/api/faq", status_code=201)
+def add_faq(item: FAQItem, current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO faq (question, answer, tenant_id, created_at) VALUES (?, ?, ?, ?)",
+            (item.question, item.answer, current_user.tenant_id, _now_iso())
+        )
+        conn.commit()
+        return {"id": cur.lastrowid, **item.model_dump()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.put("/api/faq/{faq_id}")
+def update_faq(faq_id: int, item: FAQItem, current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE faq SET question=?, answer=? WHERE id=? AND tenant_id=?",
+            (item.question, item.answer, faq_id, current_user.tenant_id)
+        )
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.delete("/api/faq/{faq_id}")
+def delete_faq(faq_id: int, current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM faq WHERE id=? AND tenant_id=?", (faq_id, current_user.tenant_id))
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+# --------------------------------------------------
+# Contact Messages
+# --------------------------------------------------
+@app.get("/api/messages")
+def list_messages(current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, email, phone, message, read, created_at FROM contact_message WHERE tenant_id=? ORDER BY created_at DESC", (current_user.tenant_id,))
+    msgs = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return msgs
+
+@app.post("/api/messages", status_code=201)
+def create_message(message: ContactMessageIn):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO contact_message (name, email, phone, message, tenant_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (message.name, message.email, message.phone, message.message, None, _now_iso())
+        )
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.patch("/api/messages/{msg_id}/read")
+def mark_message_read(msg_id: int, current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute("UPDATE contact_message SET read=1 WHERE id=? AND tenant_id=?", (msg_id, current_user.tenant_id))
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.delete("/api/messages/{msg_id}")
+def delete_message(msg_id: int, current_user: UserInDB = Depends(get_current_user)):
+    conn = db()
+    cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM contact_message WHERE id=? AND tenant_id=?", (msg_id, current_user.tenant_id))
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
 @app.post("/emsal", response_model=Dict[str, Any], summary="Yeni Emsal Ekle")
 def add_emsal(payload: EmsalCreate, current_user: UserInDB = Depends(get_current_user)):
     log_action("DEBUG_ADD_EMSAL", f"Payload: {payload.model_dump_json()}")
